@@ -31,6 +31,7 @@ class CliTest(unittest.TestCase):
             ("experiment", "create"),
             ("notebook",),
             ("notebook", "generate"),
+            ("notebook", "colab"),
             ("status",),
             ("run",),
             ("run", "show"),
@@ -79,6 +80,39 @@ class CliTest(unittest.TestCase):
             url,
             "https://colab.research.google.com/github/example/dogs-vs-cats/blob/main/experiments/multihead/run.ipynb",
         )
+
+    def test_notebook_colab_prints_current_branch_url_without_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            experiment_root = root / "experiments" / "multihead"
+            experiment_root.mkdir(parents=True)
+            (experiment_root / "experiment.toml").write_text(
+                "\n".join(
+                    [
+                        'experiment_slug = "multihead"',
+                        'type = "training"',
+                        'objective = "Train a model."',
+                        'primary_metric = "validation.accuracy"',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            notebook = experiment_root / "run.ipynb"
+            notebook.write_text("{}\n", encoding="utf-8")
+            output = io.StringIO()
+            with patch(
+                "colab_mlflow.cli.repository_metadata",
+                return_value={"repository_url": "https://github.com/example/project.git", "branch": "main"},
+            ), redirect_stdout(output):
+                self.assertEqual(
+                    main(["notebook", "colab", "--root", str(root), "--experiment", "multihead"]),
+                    0,
+                )
+            self.assertEqual(
+                output.getvalue(),
+                "https://colab.research.google.com/github/example/project/blob/main/experiments/multihead/run.ipynb\n",
+            )
+            self.assertEqual(notebook.read_text(encoding="utf-8"), "{}\n")
 
     def test_setup_reads_environment_file_and_creates_worker_layout(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

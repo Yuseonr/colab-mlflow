@@ -308,6 +308,10 @@ colab-mlflow run colab \
   --experiment hist-gradient-boosting \
   --number 1
 
+# Prints a copy-ready branch URL without modifying the notebook.
+colab-mlflow notebook colab \
+  --experiment hist-gradient-boosting
+
 colab-mlflow compare --experiment hist-gradient-boosting
 
 colab-mlflow sync
@@ -318,6 +322,7 @@ colab-mlflow server --port 5000 --sync-interval 300
 | Command | Purpose |
 |---|---|
 | status | Fast manifest-only project and run summary. |
+| notebook colab | One copy-ready Colab URL for an existing notebook on the current branch. |
 | run show | Full metadata, source, datasets, artifacts, and log previews for one run. |
 | run colab | One copy-ready Colab URL for the exact Git revision used by one run. |
 | compare | Concise contract-aware view; never hides autolog details. |
@@ -341,6 +346,7 @@ local file lock protects the database.
 | Create dataset version | colab-mlflow dataset init --slug <name> --version <version> |
 | Create experiment | colab-mlflow experiment create ... |
 | Generate notebook | colab-mlflow notebook generate --experiment <slug> |
+| Open current notebook in Colab | colab-mlflow notebook colab --experiment <slug> |
 | List runs | colab-mlflow status |
 | Inspect run | colab-mlflow run show --experiment <slug> --number 1 |
 | Open run notebook in Colab | colab-mlflow run colab --experiment <slug> --number 1 |

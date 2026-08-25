@@ -229,6 +229,15 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--root", default=Path("."), type=Path, help="Project repository directory (default: current directory).")
     generate.add_argument("--experiment", required=True, help="Existing experiment slug to generate.")
     generate.add_argument("--target", type=Path, help="Optional notebook output path; default is experiments/<slug>/run.ipynb.")
+    notebook_colab = _command(
+        notebook_actions,
+        "colab",
+        help="Prints the direct Colab URL for an existing experiment notebook.",
+        description="Prints one copy-ready URL for the notebook path on the project's current Git branch without modifying files.",
+        examples=("colab-mlflow notebook colab --experiment ridge-baseline",),
+    )
+    notebook_colab.add_argument("--root", default=Path("."), type=Path, help="Project repository directory (default: current directory).")
+    notebook_colab.add_argument("--experiment", required=True, help="Existing experiment slug whose notebook should be opened.")
     status = _command(
         commands,
         "status",
@@ -423,6 +432,21 @@ def main(arguments: Sequence[str] | None = None) -> int:
     if namespace.command == "experiment" and namespace.experiment_action == "create":
         experiment = create_experiment(project_root=namespace.root, slug=namespace.slug, experiment_type=namespace.experiment_type, objective=namespace.objective, primary_metric=namespace.primary_metric)
         print(f"Experiment '{experiment.slug}' was created.")
+        return 0
+    if namespace.command == "notebook" and namespace.notebook_action == "colab":
+        load_experiment_definition(namespace.root, namespace.experiment)
+        target = namespace.root / "experiments" / namespace.experiment / "run.ipynb"
+        if not target.is_file():
+            raise FileNotFoundError(f"Experiment notebook was not found: {target}")
+        repository = repository_metadata(namespace.root)
+        colab_url = github_colab_url(
+            repository["repository_url"],
+            repository["branch"],
+            target.resolve().relative_to(namespace.root.resolve()),
+        )
+        if colab_url is None:
+            raise ValueError("Project repository does not support direct GitHub Colab URLs.")
+        print(colab_url)
         return 0
     if namespace.command == "notebook" and namespace.notebook_action == "generate":
         project = load_project_identity(namespace.root)
