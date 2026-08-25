@@ -303,6 +303,11 @@ colab-mlflow run show \
   --experiment hist-gradient-boosting \
   --number 1
 
+# Prints one copy-ready Colab link for the exact Git commit used by the run.
+colab-mlflow run colab \
+  --experiment hist-gradient-boosting \
+  --number 1
+
 colab-mlflow compare --experiment hist-gradient-boosting
 
 colab-mlflow sync
@@ -314,6 +319,7 @@ colab-mlflow server --port 5000 --sync-interval 300
 |---|---|
 | status | Fast manifest-only project and run summary. |
 | run show | Full metadata, source, datasets, artifacts, and log previews for one run. |
+| run colab | One copy-ready Colab URL for the exact Git revision used by one run. |
 | compare | Concise contract-aware view; never hides autolog details. |
 | sync | Rebuilds/refreshes local SQLite from Drive manifests. |
 | server | Syncs on startup and serves native local MLflow UI. |
@@ -337,6 +343,7 @@ local file lock protects the database.
 | Generate notebook | colab-mlflow notebook generate --experiment <slug> |
 | List runs | colab-mlflow status |
 | Inspect run | colab-mlflow run show --experiment <slug> --number 1 |
+| Open run notebook in Colab | colab-mlflow run colab --experiment <slug> --number 1 |
 | Compare runs | colab-mlflow compare --experiment <slug> |
 | Import Drive metadata | colab-mlflow sync |
 | Open MLflow UI | colab-mlflow server |

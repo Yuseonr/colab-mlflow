@@ -259,6 +259,18 @@ def build_parser() -> argparse.ArgumentParser:
     show.add_argument("--config", type=Path, help="Optional alternate visible TOML path.")
     show.add_argument("--experiment", required=True, help="Experiment slug shown by status.")
     show.add_argument("--number", required=True, type=int, help="One-based run number shown by status.")
+    colab = _command(
+        run_actions,
+        "colab",
+        help="Prints the direct Colab URL for the exact revision used by one run.",
+        description="Prints one copy-ready URL using the run's recorded GitHub repository, commit, and notebook path.",
+        examples=("colab-mlflow run colab --experiment ridge-baseline --number 1",),
+    )
+    colab.add_argument("--root", default=Path("."), type=Path, help="Project repository directory (default: current directory).")
+    colab.add_argument("--env-file", type=Path, help="Optional .env override.")
+    colab.add_argument("--config", type=Path, help="Optional alternate visible TOML path.")
+    colab.add_argument("--experiment", required=True, help="Experiment slug shown by status.")
+    colab.add_argument("--number", required=True, type=int, help="One-based run number shown by status.")
     compare = _command(
         commands,
         "compare",
@@ -454,7 +466,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
             )
         )
         return 0
-    if namespace.command == "run" and namespace.run_action == "show":
+    if namespace.command == "run" and namespace.run_action in {"show", "colab"}:
         if namespace.number < 1:
             raise ValueError("Run number must be at least 1.")
         project = load_project_identity(namespace.root)
@@ -469,6 +481,9 @@ def main(arguments: Sequence[str] | None = None) -> int:
             include_artifacts=True,
         )
         record = select_run(records, experiment=namespace.experiment, number=namespace.number)
+        if namespace.run_action == "colab":
+            print(_colab_url_for_run(record))
+            return 0
         print(format_run_detail(project["slug"], record))
         return 0
     if namespace.command == "compare":
@@ -531,6 +546,25 @@ def main(arguments: Sequence[str] | None = None) -> int:
         )
         return 0
     raise RuntimeError("Unknown command.")
+
+
+def _colab_url_for_run(record: dict[str, object]) -> str:
+    """Return a direct Colab URL for the immutable source revision recorded by a run."""
+
+    tags = record.get("tags")
+    if not isinstance(tags, dict):
+        raise ValueError("Selected run has no source tags from which to build a Colab URL.")
+    repository = tags.get("source.repository")
+    commit = tags.get("source.commit")
+    notebook = tags.get("source.notebook")
+    if not all(isinstance(value, str) and value.strip() for value in (repository, commit, notebook)):
+        raise ValueError(
+            "Selected run is missing source.repository, source.commit, or source.notebook."
+        )
+    url = github_colab_url(repository, commit, Path(notebook))
+    if url is None:
+        raise ValueError("Selected run does not reference a supported GitHub notebook source.")
+    return url
 
 
 def _workspace_for_new_project(namespace: argparse.Namespace):

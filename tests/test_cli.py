@@ -34,6 +34,7 @@ class CliTest(unittest.TestCase):
             ("status",),
             ("run",),
             ("run", "show"),
+            ("run", "colab"),
             ("compare",),
             ("sync",),
             ("server",),
@@ -463,6 +464,21 @@ class CliTest(unittest.TestCase):
             self.assertIn("logs/stdout.log", text)
             self.assertIn("learning_rate", text)
             self.assertIn("Use 'colab-mlflow run show'", text)
+            colab_output = io.StringIO()
+            with patch("colab_mlflow.cli.collect_project_runs", return_value=records), redirect_stdout(colab_output):
+                self.assertEqual(
+                    main(
+                        [
+                            "run", "colab", "--root", str(root), "--env-file", str(env_file),
+                            "--experiment", "multihead", "--number", "1",
+                        ]
+                    ),
+                    0,
+                )
+            self.assertEqual(
+                colab_output.getvalue(),
+                "https://colab.research.google.com/github/example/project/blob/abc/experiments/multihead/run.ipynb\n",
+            )
 
     def test_experiment_definition_cannot_be_overwritten_by_a_run_change(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
